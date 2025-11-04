@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>📦 Pinata Dashboard | File Uploader</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  </head>
+
+  <body class="bg-gradient-to-br from-gray-50 via-white to-gray-100 text-gray-800 min-h-screen flex flex-col">
+    <!-- Header -->
+    <header class="bg-gradient-to-r from-indigo-600 to-purple-700 text-white shadow-lg">
+      <div class="container mx-auto px-6 py-6 flex justify-between items-center">
+        <div>
+          <h1 class="text-3xl font-bold tracking-wide">📦 Pinata Dashboard</h1>
+          <p class="text-sm opacity-90 mt-1">Manage your decentralized uploads in style</p>
+        </div>
+        <a
+          href="/"
+          class="text-sm bg-white/20 hover:bg-white/30 transition-all rounded-lg px-4 py-2 font-medium shadow-sm"
+        >
+          ← Back to Home
+        </a>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-6 py-10 flex-1 w-full">
+      <!-- Upload Card -->
+      <section
+        class="bg-white/80 backdrop-blur-md rounded-2xl shadow-lg p-8 mb-10 border border-gray-100 hover:shadow-xl transition-all"
+      >
+        <h2 class="text-2xl font-semibold mb-6 flex items-center gap-2">
+          <span>📤</span> Upload a File to IPFS
+        </h2>
+
+        <form
+          action="/pinata/upload"
+          method="POST"
+          enctype="multipart/form-data"
+          class="flex flex-col sm:flex-row gap-4"
+        >
+          <input
+            type="file"
+            name="file"
+            required
+            class="flex-grow border border-gray-300 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+          />
+          <button
+            type="submit"
+            class="bg-indigo-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-indigo-700 hover:scale-105 transition-all duration-150 shadow-md"
+          >
+            🚀 Upload
+          </button>
+        </form>
+      </section>
+
+      <!-- Uploaded Files -->
+      <section class="bg-white/90 backdrop-blur-md rounded-2xl shadow-lg p-8 border border-gray-100">
+        <div class="flex justify-between items-center mb-6">
+          <h2 class="text-2xl font-semibold flex items-center gap-2">
+            <span>📁</span> Uploaded Files
+          </h2>
+          <p class="text-sm text-gray-500 italic">
+            Total: <%= files.length %> file(s)
+          </p>
+        </div>
+
+        <% if (files.length === 0) { %>
+          <div class="text-center py-10 text-gray-400">
+            <p class="text-lg">No files uploaded yet.</p>
+            <p class="text-sm mt-1">Your uploaded files will appear here.</p>
+          </div>
+        <% } else { %>
+          <div class="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <% files.forEach(file => { %>
+              <div
+                class="group border border-gray-200 rounded-xl p-5 bg-gradient-to-br from-white to-gray-50 hover:shadow-lg hover:-translate-y-1 transition-all duration-200 relative overflow-hidden"
+              >
+                <div class="absolute top-0 right-0 bg-indigo-600 text-white text-xs font-semibold px-3 py-1 rounded-bl-xl">
+                  IPFS
+                </div>
+                <h3 class="font-medium text-gray-800 mb-2 truncate">
+                  <%= file.name %>
+                </h3>
+                <p class="text-xs text-gray-500 mb-3">
+                  Uploaded: <%= new Date(file.timestamp).toLocaleString() %>
+                </p>
+                <div class="flex justify-between items-center mt-2">
+                  <a
+                    href="<%= file.url %>"
+                    target="_blank"
+                    class="inline-block bg-indigo-600 text-white px-4 py-2 rounded-md text-sm hover:bg-indigo-700 transition-all shadow"
+                  >
+                    View File
+                  </a>
+                  <a
+                    href="<%= file.url %>"
+                    target="_blank"
+                    class="text-gray-400 hover:text-indigo-600 transition-all text-sm"
+                    title="Copy IPFS Link"
+                    onclick="copyToClipboard('<%= file.url %>'); return false;"
+                  >
+                    🔗 Copy
+                  </a>
+                </div>
+              </div>
+            <% }) %>
+          </div>
+        <% } %>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="text-center py-6 text-sm text-gray-500">
+      © <%= new Date().getFullYear() %> Pinata Uploader | Built with ❤️ using NestJS + TailwindCSS + IPFS
+    </footer>
+
+    <!-- SweetAlert + Clipboard Script -->
+    <script>
+      // Handle upload result alerts
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('success')) {
+        Swal.fire({
+          icon: 'success',
+          title: 'Upload Successful!',
+          text: 'Your file has been uploaded to IPFS.',
+          showConfirmButton: false,
+          timer: 2000,
+        }).then(() => {
+          window.history.replaceState({}, document.title, '/pinata');
+        });
+      } else if (urlParams.get('error')) {
+        Swal.fire({
+          icon: 'error',
+          title: 'Upload Failed!',
+          text: 'Something went wrong while uploading.',
+        }).then(() => {
+          window.history.replaceState({}, document.title, '/pinata');
+        });
+      }
+
+      // Copy IPFS link function
+      function copyToClipboard(url) {
+        navigator.clipboard.writeText(url);
+        Swal.fire({
+          toast: true,
+          position: 'top-end',
+          icon: 'info',
+          title: 'Link copied!',
+          showConfirmButton: false,
+          timer: 1500,
+        });
+      }
+    </script>
+  </body>
+</html>

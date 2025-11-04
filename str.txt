@@ -1,0 +1,22 @@
+nestjs-pinata/
+├── .env
+├── uploads/
+│   ├── pinata/
+│   └── tusky-walrus/
+├── src/
+│   ├── app.module.ts
+│   ├── main.ts
+│   ├── views/
+│   │   ├── pinata.ejs
+│   │   └── tusky-walrus.ejs
+│   ├── common/
+│   │   ├── pinata.module.ts
+│   │   └── pinata.service.ts
+│   ├── pinata/
+│   │   ├── pinata.controller.ts
+│   │   ├── pinata.service.ts (optional wrapper)
+│   │   └── pinata.module.ts
+│   └── tusky-walrus/
+│       ├── tusky-walrus.controller.ts
+│       ├── tusky-walrus.service.ts
+│       └── tusky-walrus.module.ts
