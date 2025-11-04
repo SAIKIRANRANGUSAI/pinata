@@ -9,7 +9,7 @@ dotenv.config();
 
 @Injectable()
 export class PinataService {
-  private readonly jwt = process.env.PINATA_JWT;
+  private readonly jwt = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiJjZWQyNjhkMy1kMmQyLTQzYjQtODcxNy0zOTUxMzY4NWJiNGMiLCJlbWFpbCI6InNhaWtpcmFuLmNtb29uQGdtYWlsLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJwaW5fcG9saWN5Ijp7InJlZ2lvbnMiOlt7ImRlc2lyZWRSZXBsaWNhdGlvbkNvdW50IjoxLCJpZCI6IkZSQTEifSx7ImRlc2lyZWRSZXBsaWNhdGlvbkNvdW50IjoxLCJpZCI6Ik5ZQzEifV0sInZlcnNpb24iOjF9LCJtZmFfZW5hYmxlZCI6ZmFsc2UsInN0YXR1cyI6IkFDVElWRSJ9LCJhdXRoZW50aWNhdGlvblR5cGUiOiJzY29wZWRLZXkiLCJzY29wZWRLZXlLZXkiOiJjNDY0ZGFkM2NiZjA4MWNkZWVmYyIsInNjb3BlZEtleVNlY3JldCI6Ijg2MzI1ODFhY2EzOGVmOGExMTFkZWQ1ODMxYzM2NGU0NTNlYWIxMTBjNWI5ZmIwMGFiYWIyZDM1NTA4ZjU1MjYiLCJleHAiOjE3OTM3NzE5NDl9.qdAqMgSVVwWxQF0_hWf8IIjbuULb6oUAvhZjBasCej8';
   private readonly baseUrl = 'https://api.pinata.cloud/pinning';
 
   async uploadToPinata(filePath: string) {
@@ -37,3 +37,4 @@ export class PinataService {
     });
   }
 }
+
