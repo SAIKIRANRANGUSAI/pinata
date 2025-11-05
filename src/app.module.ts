@@ -16,11 +16,11 @@ import { AppController } from './app.controller';
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRoot({
       type: 'mysql',
-      host: process.env.DB_HOST,
-      port: Number(process.env.DB_PORT),
-      username: process.env.DB_USER,
-      password: process.env.DB_PASS,
-      database: process.env.DB_NAME,
+      host: '46.250.225.169',
+      port: '3306',
+      username: 'demo_colormo_usr',
+      password: 'QRdKdVpp3pnNhXBt',
+      database: 'test_walrus',
       entities: [PinataUpload, WalrusUpload, TuskyKey, TuskyImage], // Add both
       synchronize: true,
       ssl: { rejectUnauthorized: false },
@@ -32,4 +32,5 @@ import { AppController } from './app.controller';
   ],
   controllers: [AppController],
 })
+
 export class AppModule {}
