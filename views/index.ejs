@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>📦 Decentralized Storage Hub | Welcome</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+  </head>
+
+  <body class="bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 text-white flex flex-col min-h-screen">
+
+    <!-- Header -->
+    <header class="absolute top-0 left-0 w-full flex justify-between items-center px-6 sm:px-12 py-6">
+      <h1 class="text-xl sm:text-2xl font-bold tracking-wide">🌐 Decentralized Storage Hub</h1>
+      <a
+        href="https://www.pinata.cloud/"
+        target="_blank"
+        class="text-sm sm:text-base text-white/80 hover:text-white transition-all"
+      >
+        Powered by Pinata Cloud
+      </a>
+    </header>
+
+    <!-- Hero Section -->
+    <main class="flex-grow flex flex-col justify-center items-center text-center px-6 pt-20 sm:pt-32">
+      <!-- Animated Illustration -->
+      <lottie-player
+        src="https://assets5.lottiefiles.com/packages/lf20_tfb3estd.json"
+        background="transparent"
+        speed="1"
+        style="width: 240px; height: 240px; margin-bottom: 2rem;"
+        loop
+        autoplay
+      ></lottie-player>
+
+      <h2 class="text-3xl sm:text-5xl font-extrabold mb-4 drop-shadow-md">
+        Upload. Manage. Share.
+      </h2>
+      <p class="text-base sm:text-lg text-white/90 mb-10 max-w-2xl leading-relaxed">
+        One unified platform to manage your decentralized uploads using <b>Pinata</b>, <b>Walrus</b>, and <b>Tusky</b>.
+      </p>
+
+      <!-- Dashboard Buttons -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12 w-full max-w-5xl px-4">
+        <!-- Pinata -->
+        <a
+          href="/pinata"
+          class="bg-white text-indigo-700 font-semibold px-8 py-6 rounded-2xl shadow-lg hover:scale-105 hover:bg-gray-100 transition-transform duration-200 flex flex-col items-center justify-center text-center"
+        >
+          <img src="https://cdn-icons-png.flaticon.com/512/720/720255.png" alt="Pinata" class="w-12 mb-3">
+          <span>📦 Pinata Dashboard</span>
+        </a>
+
+        <!-- Walrus -->
+        <a
+          href="/walrus"
+          class="bg-white text-purple-700 font-semibold px-8 py-6 rounded-2xl shadow-lg hover:scale-105 hover:bg-gray-100 transition-transform duration-200 flex flex-col items-center justify-center text-center"
+        >
+          <img src="https://cdn-icons-png.flaticon.com/512/4228/4228760.png" alt="Walrus" class="w-12 mb-3">
+          <span>🐋 Walrus Manager</span>
+        </a>
+
+        <!-- Tusky -->
+        <a
+          href="/tusky"
+          class="bg-white text-pink-700 font-semibold px-8 py-6 rounded-2xl shadow-lg hover:scale-105 hover:bg-gray-100 transition-transform duration-200 flex flex-col items-center justify-center text-center"
+        >
+          <img src="https://cdn-icons-png.flaticon.com/512/1669/1669383.png" alt="Tusky" class="w-12 mb-3">
+          <span>🐘 Tusky Interface</span>
+        </a>
+      </div>
+
+      <!-- Small Info -->
+      <div class="text-xs sm:text-sm text-white/80 space-y-1">
+        <p>Secure • Decentralized • Scalable • Built for Developers</p>
+        <p>Powered by <b>NestJS</b> + <b>TailwindCSS</b></p>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="text-center py-6 border-t border-white/10 text-white/80 text-sm">
+      © <%= new Date().getFullYear() %> Decentralized Storage Hub — Built with ❤️ by Sai using NestJS & TailwindCSS
+    </footer>
+  </body>
+</html>

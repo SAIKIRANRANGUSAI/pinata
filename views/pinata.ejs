@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>📦 Pinata Uploads – Premium Dashboard</title>
+
+  <!-- Bootstrap -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <style>
+    body {
+      background: linear-gradient(135deg, #f8f9fa 0%, #eceef7 100%);
+      font-family: "Poppins", sans-serif;
+      color: #333;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: linear-gradient(90deg, #6c63ff, #5848d0);
+      color: white;
+      padding: 1rem 2rem;
+      border-radius: 0 0 20px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    header a {
+      text-decoration: none;
+      color: white;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: 0.3s;
+    }
+
+    header a:hover {
+      opacity: 0.8;
+      transform: translateX(-2px);
+    }
+
+    footer {
+      margin-top: auto;
+      text-align: center;
+      padding: 1.5rem 0;
+      color: #666;
+      background: #f9fafc;
+      border-top: 1px solid #e5e7eb;
+      font-size: 0.9rem;
+    }
+
+    .card {
+      border: none;
+      border-radius: 15px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+    }
+
+    .upload-area {
+      border: 2px dashed #6c63ff;
+      border-radius: 12px;
+      padding: 40px;
+      text-align: center;
+      background-color: #fff;
+      transition: 0.3s;
+    }
+
+    .upload-area:hover {
+      background-color: #f3f2ff;
+    }
+
+    .btn-primary {
+      background-color: #6c63ff;
+      border: none;
+      border-radius: 8px;
+      transition: 0.3s;
+    }
+
+    .btn-primary:hover {
+      background-color: #5848d0;
+    }
+
+    .preview-img {
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      transition: transform 0.3s ease;
+    }
+
+    .preview-img:hover {
+      transform: scale(1.1);
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Header -->
+  <header>
+    <h3 class="fw-bold mb-0 d-flex align-items-center gap-2">
+      📦 Pinata Cloud File Manager
+    </h3>
+    <a href="/" title="Back to Home">
+      <i class="bi bi-arrow-left-circle"></i> Back to Dashboard
+    </a>
+  </header>
+
+  <main class="container py-5">
+
+    <div class="text-center mb-5">
+      <h2 class="fw-bold text-primary">Manage Your Decentralized Files</h2>
+      <p class="text-muted">Upload, preview, and organize your files seamlessly on IPFS using Pinata</p>
+    </div>
+
+    <!-- Upload Form -->
+    <div class="card mb-5 p-4">
+      <form id="uploadForm" action="/pinata/upload" method="POST" enctype="multipart/form-data">
+        <div class="upload-area">
+          <h5 class="mb-3">Drag & Drop your file or click to upload</h5>
+          <input type="file" name="file" id="fileInput" class="form-control mt-3" style="max-width:400px;margin:auto;" required>
+          <button type="submit" class="btn btn-primary mt-4 px-4">
+            <i class="bi bi-cloud-arrow-up-fill"></i> Upload File
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Uploaded Files Table -->
+    <div class="card p-4">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="mb-0">Uploaded Files</h4>
+        <span class="badge bg-primary fs-6"><%= files.length %> Total</span>
+      </div>
+
+      <% if (files.length === 0) { %>
+        <p class="text-muted text-center my-4">No files uploaded yet. Upload your first file above!</p>
+      <% } else { %>
+        <div class="table-responsive">
+          <table class="table align-middle text-center">
+            <thead class="table-light">
+              <tr>
+                <th>ID</th>
+                <th>Filename</th>
+                <th>Preview</th>
+                <th>IPFS URL</th>
+                <th>Uploaded At</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% files.forEach(file => { %>
+                <tr>
+                  <td><%= file.id %></td>
+                  <td class="fw-semibold"><%= file.filename %></td>
+                  <td>
+                    <img src="<%= file.url %>" alt="<%= file.filename %>" width="80" class="preview-img"
+                         onerror="this.src='https://via.placeholder.com/80?text=No+Image'">
+                  </td>
+                  <td>
+                    <a href="<%= file.url %>" class="text-decoration-none" target="_blank">
+                      <span class="badge bg-primary"><%= file.cid.substring(0, 10) %>...</span>
+                    </a>
+                  </td>
+                  <td><%= new Date(file.createdAt).toLocaleString() %></td>
+                  <td>
+                    <button class="btn btn-sm btn-danger" onclick="deleteFile(<%= file.id %>)">
+                      <i class="bi bi-trash"></i> Delete
+                    </button>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div>
+      <span>Built with ❤️ using NestJS, Bootstrap, and SweetAlert2</span>
+      <br />
+      <a href="https://www.pinata.cloud/" target="_blank" class="text-decoration-none text-primary fw-semibold">
+        Powered by Pinata Cloud
+      </a>
+    </div>
+  </footer>
+
+  <!-- SweetAlert Logic -->
+  <script>
+    const uploadForm = document.getElementById('uploadForm');
+
+    // Upload with alert feedback
+    uploadForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      const formData = new FormData(this);
+      Swal.fire({
+        title: 'Uploading...',
+        text: 'Please wait while we upload your file to Pinata IPFS.',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading(),
+      });
+
+      fetch('/pinata/upload', {
+        method: 'POST',
+        body: formData
+      })
+      .then(res => {
+        if (res.redirected) {
+          Swal.fire({
+            icon: 'success',
+            title: 'Upload Complete!',
+            text: 'Your file has been successfully uploaded to IPFS.',
+            confirmButtonColor: '#6c63ff'
+          }).then(() => {
+            window.location.href = res.url;
+          });
+        } else {
+          throw new Error('Upload failed.');
+        }
+      })
+      .catch(err => {
+        Swal.fire('Error', 'Something went wrong during upload.', 'error');
+      });
+    });
+
+    // Delete confirmation with SweetAlert
+    function deleteFile(id) {
+      Swal.fire({
+        title: 'Are you sure?',
+        text: "This will delete the record (not from IPFS).",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#6c63ff',
+        confirmButtonText: 'Yes, delete it!'
+      }).then(result => {
+        if (result.isConfirmed) {
+          fetch(`/pinata/delete/${id}`, { method: 'DELETE' })
+            .then(res => res.json())
+            .then(data => {
+              if (data.deleted) {
+                Swal.fire('Deleted!', 'File record removed.', 'success')
+                  .then(() => location.reload());
+              }
+            })
+            .catch(() => Swal.fire('Error', 'Unable to delete file.', 'error'));
+        }
+      });
+    }
+  </script>
+</body>
+</html>

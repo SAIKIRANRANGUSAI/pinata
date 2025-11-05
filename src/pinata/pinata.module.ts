@@ -1,11 +1,13 @@
 import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { PinataUpload } from '../entities/pinata.entity';
+import { PinataService } from './pinata.service';
 import { PinataController } from './pinata.controller';
-import { LocalPinataService } from './pinata.service';
-import { PinataModule as CommonPinataModule } from '../common/pinata.module';
 
 @Module({
-  imports: [CommonPinataModule],
+  imports: [TypeOrmModule.forFeature([PinataUpload])],
   controllers: [PinataController],
-  providers: [LocalPinataService],
+  providers: [PinataService],
+  exports: [PinataService],
 })
 export class PinataModule {}
