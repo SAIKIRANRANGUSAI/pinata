@@ -10,8 +10,8 @@ dotenv.config();
 @Injectable()
 export class WalrusService {
   // Use env vars for flexibility (fallbacks to correct testnet URLs per official docs)
-  private readonly WALRUS_PUBLISHER_URL = process.env.WALRUS_PUBLISHER_URL || 'https://publisher.walrus-testnet.walrus.space';
-  private readonly WALRUS_AGGREGATOR_URL = process.env.WALRUS_AGGREGATOR_URL || 'https://aggregator.walrus-testnet.walrus.space';
+  private readonly WALRUS_PUBLISHER_URL = 'https://publisher.walrus-testnet.walrus.space';
+  private readonly WALRUS_AGGREGATOR_URL = 'https://aggregator.walrus-testnet.walrus.space';
 
   constructor(
     @InjectRepository(WalrusUpload)
@@ -107,4 +107,5 @@ export class WalrusService {
       throw new InternalServerErrorException('File not found or already deleted');
     return { deleted: true };
   }
+
 }
