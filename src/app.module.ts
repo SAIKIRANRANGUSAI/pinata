@@ -17,7 +17,7 @@ import { AppController } from './app.controller';
     TypeOrmModule.forRoot({
       type: 'mysql',
       host: '46.250.225.169',
-      port: '3306',
+      port: 3306,
       username: 'demo_colormo_usr',
       password: 'QRdKdVpp3pnNhXBt',
       database: 'test_walrus',
@@ -34,3 +34,4 @@ import { AppController } from './app.controller';
 })
 
 export class AppModule {}
+
