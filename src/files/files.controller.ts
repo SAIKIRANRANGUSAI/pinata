@@ -9,7 +9,6 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
-import { PinataService } from '../common/pinata.service';
 import { extname } from 'path';
 import * as fs from 'fs';
 
