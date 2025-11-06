@@ -137,12 +137,10 @@
     <div class="card p-4">
       <div class="d-flex justify-content-between align-items-center mb-3">
         <h4 class="mb-0">Uploaded Files</h4>
-        <span class="badge bg-primary fs-6"><%= files.length %> Total</span>
+        <span class="badge bg-primary fs-6">{{files.length}} Total</span>
       </div>
 
-      <% if (files.length === 0) { %>
-        <p class="text-muted text-center my-4">No files uploaded yet. Upload your first file above!</p>
-      <% } else { %>
+      {{#if files.length}}
         <div class="table-responsive">
           <table class="table align-middle text-center">
             <thead class="table-light">
@@ -156,31 +154,33 @@
               </tr>
             </thead>
             <tbody>
-              <% files.forEach(file => { %>
+              {{#each files}}
                 <tr>
-                  <td><%= file.id %></td>
-                  <td class="fw-semibold"><%= file.filename %></td>
+                  <td>{{id}}</td>
+                  <td class="fw-semibold">{{filename}}</td>
                   <td>
-                    <img src="<%= file.url %>" alt="<%= file.filename %>" width="80" class="preview-img"
+                    <img src="{{url}}" alt="{{filename}}" width="80" class="preview-img"
                          onerror="this.src='https://via.placeholder.com/80?text=No+Image'">
                   </td>
                   <td>
-                    <a href="<%= file.url %>" class="text-decoration-none" target="_blank">
-                      <span class="badge bg-primary"><%= file.cid.substring(0, 10) %>...</span>
+                    <a href="{{url}}" class="text-decoration-none" target="_blank">
+                      <span class="badge bg-primary">{{cid}}</span>
                     </a>
                   </td>
-                  <td><%= new Date(file.createdAt).toLocaleString() %></td>
+                  <td>{{createdAt}}</td>
                   <td>
-                    <button class="btn btn-sm btn-danger" onclick="deleteFile(<%= file.id %>)">
+                    <button class="btn btn-sm btn-danger" onclick="deleteFile('{{id}}')">
                       <i class="bi bi-trash"></i> Delete
                     </button>
                   </td>
                 </tr>
-              <% }) %>
+              {{/each}}
             </tbody>
           </table>
         </div>
-      <% } %>
+      {{else}}
+        <p class="text-muted text-center my-4">No files uploaded yet. Upload your first file above!</p>
+      {{/if}}
     </div>
   </main>
 
@@ -199,7 +199,6 @@
   <script>
     const uploadForm = document.getElementById('uploadForm');
 
-    // Upload with alert feedback
     uploadForm.addEventListener('submit', function(e) {
       e.preventDefault();
 
@@ -234,7 +233,6 @@
       });
     });
 
-    // Delete confirmation with SweetAlert
     function deleteFile(id) {
       Swal.fire({
         title: 'Are you sure?',

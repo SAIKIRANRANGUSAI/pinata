@@ -5,32 +5,52 @@ import {
   Render,
   UseInterceptors,
   UploadedFile,
+  Res,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { WalrusService } from './walrus.service';
+import type { Response } from 'express';
 
 @Controller('walrus')
 export class WalrusController {
   constructor(private readonly walrusService: WalrusService) {}
 
-  // 🟢 FRONTEND PAGE - show upload form + uploaded files
+  // 🟢 RENDER WALRUS PAGE (Frontend)
   @Get()
-  @Render('walrus') // this will use views/walrus.ejs
+  @Render('walrus')
   async showPage() {
     const files = await this.walrusService.findAll();
-    return { title: 'Walrus Uploads', files };
+
+    // ✅ Format data for Handlebars (no inline JS)
+    const formattedFiles = files.map((file) => ({
+      ...file,
+      createdAt: new Date(file.createdAt).toLocaleString(),
+    }));
+
+    return {
+      title: '🐋 Walrus Image Uploader',
+      files: formattedFiles,
+      currentYear: new Date().getFullYear(),
+    };
   }
 
-  // 🟢 API ENDPOINT - handle file upload
+  // 🟢 FILE UPLOAD ENDPOINT
   @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
-  async upload(@UploadedFile() file: Express.Multer.File) {
-    return await this.walrusService.uploadFile(file);
+  async upload(@UploadedFile() file: Express.Multer.File, @Res() res: Response) {
+    try {
+      await this.walrusService.uploadFile(file);
+      return res.redirect('/walrus');
+    } catch (error) {
+      console.error('❌ Walrus upload failed:', error.message);
+      return res.status(500).send('Failed to upload file to Walrus');
+    }
   }
 
-  // 🟢 API ENDPOINT - get JSON list of uploads (optional)
+  // 🟢 OPTIONAL: JSON API FOR FILES
   @Get('files')
   async getAll() {
-    return await this.walrusService.findAll();
+    const files = await this.walrusService.findAll();
+    return files;
   }
 }

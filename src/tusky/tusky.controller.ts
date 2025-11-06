@@ -8,7 +8,7 @@ import {
   Body,
   Res,
 } from '@nestjs/common';
-import type { Response } from 'express'; // ✅ fixed import type
+import type { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { TuskyService } from './tusky.service';
 
@@ -17,17 +17,28 @@ export class TuskyController {
   constructor(private readonly tuskyService: TuskyService) {}
 
   /**
-   * Render Tusky dashboard
+   * 🟢 Render Tusky dashboard page
    */
   @Get()
   @Render('tusky')
   async getPage() {
     const images = await this.tuskyService.findAllImages();
-    return { images };
+
+    // Format dates for Handlebars (no inline JS)
+    const formatted = images.map((img) => ({
+      ...img,
+      createdAt: new Date(img.createdAt).toLocaleString(),
+    }));
+
+    return {
+      title: '🐘 Tusky Image Dashboard',
+      images: formatted,
+      currentYear: new Date().getFullYear(),
+    };
   }
 
   /**
-   * Upload image and return JSON success for SweetAlert
+   * 🟢 Upload image (used by SweetAlert + Fetch)
    */
   @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
@@ -39,7 +50,6 @@ export class TuskyController {
     try {
       await this.tuskyService.createImage(file, storageType);
 
-      // ✅ Return success for SweetAlert UI
       return res.status(200).json({
         success: true,
         message: 'Image uploaded successfully!',
