@@ -9,9 +9,11 @@ async function bootstrap() {
 
   // Serve static assets (CSS, images, JS)
   app.use(express.static(join(__dirname, '..', 'public')));
+  
 
   // EJS view engine
   app.setBaseViewsDir(join(__dirname, '..', 'views'));
+
   app.setViewEngine('ejs');
 
   await app.listen(process.env.PORT || 3000);
