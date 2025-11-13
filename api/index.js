@@ -1,11 +1,6 @@
-const { createNestServer } = require("../dist/main");
-
-let server;
+const { createNestServer } = require('../dist/main');
 
 module.exports = async (req, res) => {
-  if (!server) {
-    server = await createNestServer();
-  }
-
+  const server = await createNestServer();
   return server(req, res);
 };
