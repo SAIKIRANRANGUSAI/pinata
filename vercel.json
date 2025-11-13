@@ -2,7 +2,8 @@
   "version": 2,
   "functions": {
     "api/index.js": {
-      "runtime": "nodejs20.x"
+      "memory": 3000,
+      "maxDuration": 30
     }
   },
   "routes": [
