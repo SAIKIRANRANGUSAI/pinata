@@ -1,10 +1,20 @@
-// src/tusky/tusky.service.ts
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { TuskyKey, TuskyImage } from '../entities/tusky.entity';
 import { WalrusService } from '../walrus/walrus.service';
 import { PinataService } from '../pinata/pinata.service';
+
+interface WalrusUpload {
+  remoteUrl?: string;
+  url?: string; // ✅ added this to fix TS2339 error
+  cid?: string;
+  [key: string]: any;
+}
 
 @Injectable()
 export class TuskyService {
@@ -19,9 +29,9 @@ export class TuskyService {
     private readonly pinataService: PinataService,
   ) {}
 
-  // ----------------------------
+  // -----------------------------------
   // 🔑 KEY MANAGEMENT
-  // ----------------------------
+  // -----------------------------------
 
   async createKey(keyData: Partial<TuskyKey>) {
     const key = this.keyRepo.create(keyData);
@@ -29,12 +39,12 @@ export class TuskyService {
   }
 
   async findAllKeys() {
-    return await this.keyRepo.find({ order: { createdAt: 'DESC' } });
+    return this.keyRepo.find({ order: { createdAt: 'DESC' } });
   }
 
   async findKey(id: number) {
     const key = await this.keyRepo.findOne({ where: { id } });
-    if (!key) throw new InternalServerErrorException(`Key with ID ${id} not found`);
+    if (!key) throw new NotFoundException(`Tusky key with ID ${id} not found`);
     return key;
   }
 
@@ -46,21 +56,28 @@ export class TuskyService {
   async removeKey(id: number) {
     const result = await this.keyRepo.delete(id);
     if (result.affected === 0) {
-      throw new InternalServerErrorException('Key not found or already deleted');
+      throw new NotFoundException('Key not found or already deleted');
     }
     return { deleted: true };
   }
 
-  // ✅ Fetch and store API response from Tusky/Mastodon server
+  /**
+   * ✅ Fetch Mastodon API credentials using a stored Tusky key
+   */
   async fetchAndStoreApiResponse(keyId: number) {
     const key = await this.findKey(keyId);
     if (!key.serverUrl || !key.accessToken) {
-      throw new InternalServerErrorException('Missing server URL or access token');
+      throw new InternalServerErrorException(
+        'Missing server URL or access token',
+      );
     }
 
-    const response = await fetch(`${key.serverUrl}/api/v1/accounts/verify_credentials`, {
-      headers: { Authorization: `Bearer ${key.accessToken}` },
-    });
+    const response = await fetch(
+      `${key.serverUrl}/api/v1/accounts/verify_credentials`,
+      {
+        headers: { Authorization: `Bearer ${key.accessToken}` },
+      },
+    );
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -72,54 +89,112 @@ export class TuskyService {
     return apiResponse;
   }
 
-  // ----------------------------
+  // -----------------------------------
   // 🖼️ IMAGE UPLOAD MANAGEMENT
-  // ----------------------------
+  // -----------------------------------
 
-  async createImage(file: Express.Multer.File, storageType: 'walrus' | 'pinata') {
+  /**
+   * Upload image to Walrus by default (Tusky → Walrus)
+   */
+  async uploadToWalrus(file: Express.Multer.File) {
     try {
-      let uploadResult: any;
+      if (!file) throw new Error('No file received for upload');
 
-      if (storageType === 'walrus') {
-        uploadResult = await this.walrusService.uploadFile(file);
-      } else {
-        uploadResult = await this.pinataService.uploadFile(file);
-      }
+      console.log(`🚀 Uploading ${file.originalname} to Walrus via TuskyService...`);
 
-      const image = this.imageRepo.create({
+      const uploadResult: WalrusUpload = await this.walrusService.uploadFile(file);
+
+      const newImage = this.imageRepo.create({
         filename: file.originalname,
         mimeType: file.mimetype,
-        storageType,
-        remoteUrl: uploadResult.remoteUrl || uploadResult.url,
+        storageType: 'walrus',
+        remoteUrl:
+          uploadResult.remoteUrl ??
+          uploadResult.url ??
+          '', // ✅ Safe access
         uploadResponse: uploadResult,
       });
 
-      const saved = await this.imageRepo.save(image);
-      console.log(`✅ Uploaded ${file.originalname} via ${storageType}`);
+      const saved = await this.imageRepo.save(newImage);
+      console.log(`✅ Uploaded ${file.originalname} → Walrus`);
       return saved;
     } catch (error: any) {
-      console.error(`❌ Error uploading via ${storageType}:`, error.message || error);
+      console.error('❌ Tusky → Walrus upload failed:', error.message || error);
       throw new InternalServerErrorException(
-        `Failed to upload image via ${storageType}: ${error.message || 'Unknown error'}`,
+        `Failed to upload file to Walrus: ${error.message || 'Unknown error'}`,
       );
     }
   }
 
-  async findAllImages() {
-    return await this.imageRepo.find({ order: { createdAt: 'DESC' } });
+  /**
+   * Optional — Upload image to Pinata (if needed in future)
+   */
+  async uploadToPinata(file: Express.Multer.File) {
+    try {
+      if (!file) throw new Error('No file received for upload');
+
+      console.log(`🚀 Uploading ${file.originalname} to Pinata via TuskyService...`);
+
+      const uploadResult = await this.pinataService.uploadFile(file);
+
+      const newImage = this.imageRepo.create({
+        filename: file.originalname,
+        mimeType: file.mimetype,
+        storageType: 'pinata',
+        remoteUrl: uploadResult.url ?? '', // ✅ Safe null check
+        uploadResponse: uploadResult,
+      });
+
+      const saved = await this.imageRepo.save(newImage);
+      console.log(`✅ Uploaded ${file.originalname} → Pinata`);
+      return saved;
+    } catch (error: any) {
+      console.error('❌ Tusky → Pinata upload failed:', error.message || error);
+      throw new InternalServerErrorException(
+        `Failed to upload file to Pinata: ${error.message || 'Unknown error'}`,
+      );
+    }
   }
 
+  /**
+   * Legacy (backward compatible) — createImage chooses based on storageType
+   */
+  async createImage(
+    file: Express.Multer.File,
+    storageType: 'walrus' | 'pinata',
+  ) {
+    if (storageType === 'walrus') {
+      return this.uploadToWalrus(file);
+    } else {
+      return this.uploadToPinata(file);
+    }
+  }
+
+  /**
+   * Retrieve all uploaded images (latest first)
+   */
+  async findAllImages() {
+    return this.imageRepo.find({ order: { createdAt: 'DESC' } });
+  }
+
+  /**
+   * Retrieve one image by ID
+   */
   async findImage(id: number) {
     const image = await this.imageRepo.findOne({ where: { id } });
-    if (!image)
-      throw new InternalServerErrorException(`Image with ID ${id} not found`);
+    if (!image) throw new NotFoundException(`Image with ID ${id} not found`);
     return image;
   }
 
+  /**
+   * Delete image record (not from storage)
+   */
   async removeImage(id: number) {
     const result = await this.imageRepo.delete(id);
-    if (result.affected === 0)
-      throw new InternalServerErrorException('Image not found or already deleted');
+    if (result.affected === 0) {
+      throw new NotFoundException('Image not found or already deleted');
+    }
+    console.log(`🗑️ Deleted Tusky image ID: ${id}`);
     return { deleted: true };
   }
 }

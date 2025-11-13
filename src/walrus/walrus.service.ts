@@ -3,90 +3,86 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { WalrusUpload } from '../entities/walrus.entity';
 import * as dotenv from 'dotenv';
-import axios from 'axios'; // npm i axios
+import axios from 'axios';
 
 dotenv.config();
 
 @Injectable()
 export class WalrusService {
-  // Use env vars for flexibility (fallbacks to correct testnet URLs per official docs)
   private readonly WALRUS_PUBLISHER_URL = 'https://publisher.walrus-testnet.walrus.space';
-  private readonly WALRUS_AGGREGATOR_URL = 'https://aggregator.walrus-testnet.walrus.space';
+  private readonly WALRUS_RETRIEVER_URL = 'https://aggregator.walrus-testnet.walrus.space';
 
   constructor(
     @InjectRepository(WalrusUpload)
     private readonly walrusRepo: Repository<WalrusUpload>,
   ) {
-    console.log(`🔗 Using Walrus Publisher URL: ${this.WALRUS_PUBLISHER_URL}`);
-    console.log(`🔗 Using Walrus Aggregator URL: ${this.WALRUS_AGGREGATOR_URL}`);
+    console.log(`🔗 Walrus Publisher: ${this.WALRUS_PUBLISHER_URL}`);
+    console.log(`🔗 Walrus Retriever: ${this.WALRUS_RETRIEVER_URL}`);
   }
 
-  /**
-   * Upload file directly to Walrus Testnet using official HTTP Publisher API
-   */
   async uploadFile(file: Express.Multer.File) {
     try {
-      console.log(`📤 Uploading ${file.originalname} to Walrus Testnet...`);
+      console.log(`📤 Uploading "${file.originalname}" to Walrus Testnet...`);
 
-      // 1️⃣ STEP 1 — Direct PUT to /v1/blobs (generates blobId in response)
-      const uploadUrl = `${this.WALRUS_PUBLISHER_URL}/v1/blobs`;
-      console.log(`📤 Uploading to: ${uploadUrl}`);
+      // ✅ Use PUT (not POST) and include query params
+      const uploadUrl = `${this.WALRUS_PUBLISHER_URL}/v1/blobs?epochs=1`;
+      console.log(`📡 Upload endpoint: ${uploadUrl}`);
 
-      // Optional query params: e.g., ?permanent=true&epochs=1 (defaults: deletable, epochs=1)
       const res = await axios.put(uploadUrl, file.buffer, {
         headers: {
           'Content-Type': file.mimetype,
         },
-        timeout: 30000, // 30s for upload
+        timeout: 30000,
         validateStatus: () => true,
       });
 
-      console.log(`📡 Upload status: ${res.status}`);
-      console.log(`📡 Upload response:`, res.data || 'Success (no body)');
+      console.log(`📡 Walrus response status: ${res.status}`);
+      console.log(`📡 Walrus response data:`, res.data);
 
       if (res.status !== 200) {
-        throw new Error(`Walrus upload failed: ${res.status} - ${JSON.stringify(res.data)}`);
+        throw new Error(`Walrus upload failed: ${res.status} - ${JSON.stringify(res.data || '')}`);
       }
 
-      // Extract blobId from response (newlyCreated.blobObject.blobId)
-      const { newlyCreated } = res.data;
-      if (!newlyCreated || !newlyCreated.blobObject) {
-        throw new Error('Invalid response: No blobObject in newlyCreated');
-      }
-      const blobId = newlyCreated.blobObject.blobId;
+      const blobId = res.data?.newlyCreated?.blobObject?.blobId;
+      if (!blobId) throw new Error('❌ Invalid Walrus response: missing blobId');
 
-      if (!blobId) throw new Error('No blobId returned from Walrus');
+      console.log(`🆔 Blob ID: ${blobId}`);
 
-      console.log(`🆔 New blob ID: ${blobId}`);
+      const retrieverUrl = `${this.WALRUS_RETRIEVER_URL}/v1/blobs/${blobId}`;
+      console.log(`🌐 Retriever URL: ${retrieverUrl}`);
 
-      // 2️⃣ STEP 2 — Save to DB
+      // 💾 Save record to DB
       const upload = this.walrusRepo.create({
         filename: file.originalname,
         contentType: file.mimetype,
         walrusId: blobId,
-        remoteUrl: `${this.WALRUS_AGGREGATOR_URL}/v1/blobs/${blobId}`,
+        remoteUrl: retrieverUrl,
         fullResponse: JSON.stringify(res.data),
       });
 
       const saved = await this.walrusRepo.save(upload);
-      console.log(`✅ Uploaded ${file.originalname} → Blob ID: ${blobId}`);
-      return saved;
+      console.log(`✅ Successfully uploaded "${file.originalname}" → ${retrieverUrl}`);
+
+      return {
+        success: true,
+        message: 'Uploaded successfully to Walrus Testnet',
+        blobId,
+        retrieverUrl,
+        saved,
+      };
     } catch (error: any) {
-      console.error('❌ Full error details:', error);
+      console.error('❌ Walrus Upload Error:', error);
+
       let errorMsg = error.message || 'Unknown error';
       if (axios.isAxiosError(error)) {
-        errorMsg = `Axios error: ${error.code || 'N/A'} - ${error.response?.status || 'No response'} - ${error.response?.data || error.message}`;
-        if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
-          errorMsg += ' (Check network/DNS/firewall)';
-        } else if (error.code === 'ETIMEDOUT') {
-          errorMsg += ' (Timeout - slow connection)';
-        } else if (error.code === 'EPROTO') {
-          errorMsg += ' (Protocol error - possible HTTPS/TLS issue)';
-        }
+        errorMsg = `Axios error: ${error.code || 'N/A'} - ${
+          error.response?.status || 'No response'
+        } - ${
+          error.response?.data ? JSON.stringify(error.response.data) : error.message
+        }`;
       }
-      throw new InternalServerErrorException(
-        `Failed to upload to Walrus: ${errorMsg}`,
-      );
+
+      throw new InternalServerErrorException(`Failed to upload to Walrus: ${errorMsg}`);
     }
   }
 
@@ -107,5 +103,4 @@ export class WalrusService {
       throw new InternalServerErrorException('File not found or already deleted');
     return { deleted: true };
   }
-
 }

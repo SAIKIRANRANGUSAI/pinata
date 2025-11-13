@@ -11,6 +11,8 @@ import { PinataUpload } from './entities/pinata.entity';
 import { WalrusUpload } from './entities/walrus.entity';
 import { TuskyKey, TuskyImage } from './entities/tusky.entity';
 import { AppController } from './app.controller';
+import { DeStoreModule } from './destore/destore.module';
+import { DeStoreFile } from './entities/destore.entity';
 
 @Module({
   imports: [
@@ -22,7 +24,7 @@ import { AppController } from './app.controller';
       username: process.env.DB_USER,
       password: process.env.DB_PASS,
       database: process.env.DB_NAME,
-      entities: [PinataUpload, WalrusUpload, TuskyKey, TuskyImage],
+      entities: [PinataUpload, WalrusUpload, TuskyKey, TuskyImage, DeStoreModule, DeStoreFile ],
       synchronize: true,
       ssl: { rejectUnauthorized: false },
     }),
@@ -35,6 +37,7 @@ import { AppController } from './app.controller';
     PinataModule,
     WalrusModule,
     TuskyModule,
+    DeStoreModule,
   ],
   controllers: [AppController],
 })
