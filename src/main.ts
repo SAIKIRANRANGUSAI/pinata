@@ -1,22 +1,25 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { NestExpressApplication, ExpressAdapter } from '@nestjs/platform-express';
 import { join } from 'path';
-import { NestExpressApplication } from '@nestjs/platform-express';
 import * as hbs from 'hbs';
 import express from 'express';
 
+// ---------------------------------------------------------
+// 🚀 1) Exported server for Vercel (serverless function)
+// ---------------------------------------------------------
 export async function createNestServer() {
   const server = express();
 
   const app = await NestFactory.create<NestExpressApplication>(
     AppModule,
-    new (require('@nestjs/platform-express').ExpressAdapter)(server)
+    new ExpressAdapter(server),
   );
 
-  // static files
+  // Static files
   app.useStaticAssets(join(__dirname, '..', 'public'));
 
-  // views
+  // Views
   app.setBaseViewsDir(join(__dirname, '..', 'views'));
   app.setViewEngine('hbs');
   app.engine('hbs', hbs.__express);
@@ -25,7 +28,9 @@ export async function createNestServer() {
   return server;
 }
 
-// Local only
+// ---------------------------------------------------------
+// 🚀 2) Local Dev Mode — only runs when NOT inside Vercel
+// ---------------------------------------------------------
 async function bootstrap() {
   if (!process.env.VERCEL) {
     const app = await NestFactory.create<NestExpressApplication>(AppModule);
