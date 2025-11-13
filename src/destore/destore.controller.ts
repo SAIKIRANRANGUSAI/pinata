@@ -11,8 +11,8 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { DeStoreService } from './destore.service';
 import type { Response } from 'express';
-import * as path from 'path';
 import * as fs from 'fs';
+import * as path from 'path';
 
 @Controller('destore')
 export class DeStoreController {
@@ -37,20 +37,21 @@ export class DeStoreController {
     @Res() res: Response,
   ) {
     try {
-      // ⛔ NO temp folder on Vercel — use memory buffer
-      const tempPath = path.join('/tmp', file.originalname);
+      // ✔ Vercel allows only this folder
+      const tempPath = `/tmp/${file.originalname}`;
 
-      // ✔ /tmp IS ALLOWED ON VERCEL
+      // Save temporarily ONLY in /tmp
       fs.writeFileSync(tempPath, file.buffer);
 
-      const result = await this.destoreService.uploadFile(tempPath);
+      // Upload to NextCloud from the /tmp path
+      await this.destoreService.uploadFile(tempPath);
 
-      // Clean temp
+      // Remove the file
       if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
 
       return res.redirect('/destore');
-    } catch (error: any) {
-      return res.status(500).send('Internal server error: ' + error.message);
+    } catch (err: any) {
+      return res.status(500).send('Internal server error: ' + err.message);
     }
   }
 }
