@@ -15,31 +15,25 @@ import { DeStoreFile } from '../entities/destore.entity';
 @Injectable()
 export class DeStoreService {
   private readonly logger = new Logger(DeStoreService.name);
-  private readonly nextcloudUrl: string;
-  private readonly username: string;
-  private readonly password: string;
-  private readonly destoreFolder: string;
-  private readonly chunkSize: number;
+
+  // ❗ DIRECT CONFIG (NO ENV NEEDED)
+  private readonly nextcloudUrl = 'https://nextcloud.twinquasar.io';
+  private readonly username = 'Sairangu';
+  private readonly password = 'Sai@#995946';  // no escaping needed now
+  private readonly destoreFolder = 'DeStore-Uploads';
+  private readonly chunkSize = 10485760; // 10MB
 
   constructor(
     @InjectRepository(DeStoreFile)
     private readonly repo: Repository<DeStoreFile>,
   ) {
-    this.nextcloudUrl = process.env.NEXTCLOUD_URL ?? '';
-    this.username = process.env.NEXTCLOUD_USERNAME ?? '';
-    this.password = process.env.NEXTCLOUD_PASSWORD ?? '';
-    this.destoreFolder = process.env.DESTORE_FOLDER ?? 'DeStore-Uploads';
-    this.chunkSize = parseInt(process.env.CHUNK_SIZE ?? '10485760', 10);
-
-    this.logger.log(`🚀 DeStore initialized`);
-    this.logger.log(`NEXTCLOUD_URL: ${this.nextcloudUrl}`);
-    this.logger.log(`NEXTCLOUD USER: ${this.username}`);
-    this.logger.log(`SAVE FOLDER: ${this.destoreFolder}`);
+    this.logger.log('🚀 DeStore initialized with direct keys (no env)');
+    this.logger.log(`Nextcloud URL: ${this.nextcloudUrl}`);
+    this.logger.log(`Username: ${this.username}`);
+    this.logger.log(`Folder: ${this.destoreFolder}`);
   }
 
-  /**
-   * ⭐ Create public share link for file
-   */
+  // ⭐ Create public share link
   private async createPublicShare(remotePath: string): Promise<string> {
     const url = `${this.nextcloudUrl}/ocs/v2.php/apps/files_sharing/api/v1/shares`;
 
@@ -51,8 +45,8 @@ export class DeStoreService {
         headers: { 'OCS-APIRequest': 'true' },
         params: {
           path: `/${remotePath}`,
-          shareType: 3,      // Public link
-          permissions: 1,    // Read-only
+          shareType: 3,
+          permissions: 1,
         },
       }
     );
@@ -60,9 +54,7 @@ export class DeStoreService {
     return response.data.ocs.data.url;
   }
 
-  /**
-   * Upload file + save into DB
-   */
+  // ⭐ Upload + save DB
   async uploadFile(
     filePath: string,
     filename?: string,
@@ -81,7 +73,6 @@ export class DeStoreService {
       const fileSize = stats.size;
       filename = filename ?? path.basename(resolvedPath);
 
-      // Normalize remote path
       let remotePath = `${this.destoreFolder}/${filename}`.replace(/\\/g, '/');
       remotePath = remotePath.replace(/^\//, '');
 
@@ -93,10 +84,9 @@ export class DeStoreService {
         ? await this.uploadChunked(resolvedPath, remotePath)
         : await this.uploadSimple(resolvedPath, remotePath);
 
-      // ⭐ GET PUBLIC URL
+      // ⭐ Generate public URL
       const publicUrl = await this.createPublicShare(remotePath);
 
-      // Save to DB
       const saved = await this.repo.save({
         filename,
         remote_path: remotePath,
@@ -105,10 +95,7 @@ export class DeStoreService {
         chunked: shouldChunk ? 1 : 0,
       });
 
-      return {
-        success: true,
-        file: saved,
-      };
+      return { success: true, file: saved };
     } catch (error: any) {
       const msg = error?.response?.data || error?.message || 'Unknown upload error';
       this.logger.error('❌ uploadFile error:', msg);
@@ -116,25 +103,21 @@ export class DeStoreService {
     }
   }
 
-  /**
-   * Simple upload
-   */
+  // Simple upload
   private async uploadSimple(filePath: string, remotePath: string) {
     const webdavUrl = `${this.nextcloudUrl}/remote.php/dav/files/${this.username}/${remotePath}`;
 
-    const response = await axios.put(webdavUrl, fs.createReadStream(filePath), {
+    await axios.put(webdavUrl, fs.createReadStream(filePath), {
       auth: { username: this.username, password: this.password },
       headers: { 'Content-Type': 'application/octet-stream' },
       maxContentLength: Infinity,
       maxBodyLength: Infinity,
     });
 
-    return { status: response.status };
+    return { status: true };
   }
 
-  /**
-   * Chunked upload
-   */
+  // Chunked upload
   private async uploadChunked(filePath: string, remotePath: string) {
     const uploadId = `web-upload-${Date.now()}`;
     const tempPath = `/uploads/${this.username}/${uploadId}`;
@@ -166,12 +149,10 @@ export class DeStoreService {
       headers: { Destination: destination },
     });
 
-    return { status: 201 };
+    return { status: true };
   }
 
-  /**
-   * Fetch all files
-   */
+  // Get all files
   async getAllFiles() {
     return await this.repo.find({ order: { id: 'DESC' } });
   }
