@@ -5,16 +5,21 @@ import { join } from 'path';
 import * as hbs from 'hbs';
 import express from 'express';
 
-// Exported server for Vercel
+// ---------------------------------------------------------
+// 🚀 1) Exported server for Vercel (serverless function)
+// ---------------------------------------------------------
 export async function createNestServer() {
   const server = express();
 
   const app = await NestFactory.create<NestExpressApplication>(
     AppModule,
-    new ExpressAdapter(server)
+    new ExpressAdapter(server),
   );
 
+  // Static files
   app.useStaticAssets(join(__dirname, '..', 'public'));
+
+  // Views
   app.setBaseViewsDir(join(__dirname, '..', 'views'));
   app.setViewEngine('hbs');
   app.engine('hbs', hbs.__express);
@@ -23,9 +28,9 @@ export async function createNestServer() {
   return server;
 }
 
-export default createNestServer;
-
-// Local dev mode
+// ---------------------------------------------------------
+// 🚀 2) Local Dev Mode — only runs when NOT inside Vercel
+// ---------------------------------------------------------
 async function bootstrap() {
   if (!process.env.VERCEL) {
     const app = await NestFactory.create<NestExpressApplication>(AppModule);
