@@ -33,12 +33,35 @@ export class DeStoreService {
 
     this.logger.log(`🚀 DeStore initialized`);
     this.logger.log(`NEXTCLOUD_URL: ${this.nextcloudUrl}`);
-    this.logger.log(`USER: ${this.username}`);
-    this.logger.log(`FOLDER: ${this.destoreFolder}`);
+    this.logger.log(`NEXTCLOUD USER: ${this.username}`);
+    this.logger.log(`SAVE FOLDER: ${this.destoreFolder}`);
   }
 
   /**
-   * Upload file (simple or chunked) & Save record in DB
+   * ⭐ Create public share link for file
+   */
+  private async createPublicShare(remotePath: string): Promise<string> {
+    const url = `${this.nextcloudUrl}/ocs/v2.php/apps/files_sharing/api/v1/shares`;
+
+    const response = await axios.post(
+      url,
+      null,
+      {
+        auth: { username: this.username, password: this.password },
+        headers: { 'OCS-APIRequest': 'true' },
+        params: {
+          path: `/${remotePath}`,
+          shareType: 3,      // Public link
+          permissions: 1,    // Read-only
+        },
+      }
+    );
+
+    return response.data.ocs.data.url;
+  }
+
+  /**
+   * Upload file + save into DB
    */
   async uploadFile(
     filePath: string,
@@ -56,42 +79,35 @@ export class DeStoreService {
 
       const stats = fs.statSync(resolvedPath);
       const fileSize = stats.size;
-
       filename = filename ?? path.basename(resolvedPath);
 
-      // Build remote path
+      // Normalize remote path
       let remotePath = `${this.destoreFolder}/${filename}`.replace(/\\/g, '/');
       remotePath = remotePath.replace(/^\//, '');
 
-      this.logger.log(`🔍 Upload debug:`);
-      this.logger.log(`Local file: ${resolvedPath}`);
-      this.logger.log(`Remote path: ${remotePath}`);
+      this.logger.log(`Uploading: ${filename} → ${remotePath}`);
 
-      // Decide chunk upload
       const shouldChunk = useChunking || fileSize > this.chunkSize * 5;
 
       const result = shouldChunk
         ? await this.uploadChunked(resolvedPath, remotePath)
         : await this.uploadSimple(resolvedPath, remotePath);
 
-      const downloadUrl = `${this.nextcloudUrl}/remote.php/dav/files/${this.username}/${remotePath}`;
+      // ⭐ GET PUBLIC URL
+      const publicUrl = await this.createPublicShare(remotePath);
 
-      // 💾 SAVE IN DATABASE (TypeORM)
-      await this.repo.save({
+      // Save to DB
+      const saved = await this.repo.save({
         filename,
         remote_path: remotePath,
-        url: downloadUrl,
+        url: publicUrl,
         size: fileSize,
         chunked: shouldChunk ? 1 : 0,
       });
 
       return {
         success: true,
-        filename,
-        remotePath,
-        url: downloadUrl,
-        size: fileSize,
-        chunked: shouldChunk,
+        file: saved,
       };
     } catch (error: any) {
       const msg = error?.response?.data || error?.message || 'Unknown upload error';
@@ -106,16 +122,13 @@ export class DeStoreService {
   private async uploadSimple(filePath: string, remotePath: string) {
     const webdavUrl = `${this.nextcloudUrl}/remote.php/dav/files/${this.username}/${remotePath}`;
 
-    this.logger.log(`📤 Simple upload URL: ${webdavUrl}`);
-
-    const config: AxiosRequestConfig = {
+    const response = await axios.put(webdavUrl, fs.createReadStream(filePath), {
       auth: { username: this.username, password: this.password },
       headers: { 'Content-Type': 'application/octet-stream' },
       maxContentLength: Infinity,
       maxBodyLength: Infinity,
-    };
+    });
 
-    const response = await axios.put(webdavUrl, fs.createReadStream(filePath), config);
     return { status: response.status };
   }
 
@@ -130,8 +143,6 @@ export class DeStoreService {
     const totalChunks = Math.ceil(fileBuffer.length / this.chunkSize);
     const destination = `${this.nextcloudUrl}/remote.php/dav/files/${this.username}/${remotePath}`;
 
-    this.logger.log(`📦 Chunked upload: ${totalChunks} chunks`);
-
     for (let i = 0; i < totalChunks; i++) {
       const start = i * this.chunkSize;
       const end = Math.min(start + this.chunkSize, fileBuffer.length);
@@ -139,47 +150,29 @@ export class DeStoreService {
 
       const chunkUrl = `${this.nextcloudUrl}/remote.php/dav${tempPath}/${i}`;
 
-      const config: AxiosRequestConfig = {
+      await axios.put(chunkUrl, chunk, {
         auth: { username: this.username, password: this.password },
         headers: {
           'Content-Type': 'application/octet-stream',
           'Content-Length': chunk.length.toString(),
           'Destination': destination,
         },
-      };
-
-      const response = await axios.put(chunkUrl, chunk, config);
-
-      if (![201, 204].includes(response.status)) {
-        throw new Error(`Chunk ${i} failed: ${response.status}`);
-      }
+      });
     }
 
-    const commitUrl = `${this.nextcloudUrl}/remote.php/dav${tempPath}/.file`;
-
-    const commitConfig: AxiosRequestConfig = {
+    await axios(`${this.nextcloudUrl}/remote.php/dav${tempPath}/.file`, {
       method: 'MOVE',
       auth: { username: this.username, password: this.password },
-      headers: {
-        'Destination': destination,
-      },
-    };
+      headers: { Destination: destination },
+    });
 
-    const commitResponse = await axios(commitUrl, commitConfig);
-
-    if (commitResponse.status !== 201) {
-      throw new Error(`Commit failed: ${commitResponse.status}`);
-    }
-
-    return { status: commitResponse.status, chunksUploaded: totalChunks };
+    return { status: 201 };
   }
 
   /**
-   * Get all uploaded files
+   * Fetch all files
    */
   async getAllFiles() {
-    return await this.repo.find({
-      order: { id: 'DESC' },
-    });
+    return await this.repo.find({ order: { id: 'DESC' } });
   }
 }
