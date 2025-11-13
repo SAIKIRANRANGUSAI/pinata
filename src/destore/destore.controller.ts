@@ -21,7 +21,6 @@ export class DeStoreController {
   @Get()
   @Render('destore')
   async showPage() {
-    // ⭐ GET ALL FILE RECORDS FROM DATABASE
     const files = await this.destoreService.getAllFiles();
 
     return {
@@ -38,15 +37,23 @@ export class DeStoreController {
     @Res() res: Response,
   ) {
     try {
-      const uploadDir = path.join(process.cwd(), 'uploads');
-      if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
+      // ⭐ Vercel-safe writable directory
+      const uploadDir = '/tmp/uploads';
 
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+
+      // Temporary file path inside /tmp
       const tempPath = path.join(uploadDir, file.originalname);
+
+      // Save uploaded file buffer
       fs.writeFileSync(tempPath, file.buffer);
 
-      // ⭐ UPLOAD + STORE IN DB
+      // ⭐ Upload to Nextcloud + Save DB record
       const result = await this.destoreService.uploadFile(tempPath);
 
+      // Cleanup temp file
       fs.unlinkSync(tempPath);
 
       if (result.success) {
