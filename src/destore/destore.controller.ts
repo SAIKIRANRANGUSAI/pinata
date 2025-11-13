@@ -11,8 +11,8 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { DeStoreService } from './destore.service';
 import type { Response } from 'express';
-import * as fs from 'fs';
 import * as path from 'path';
+import * as fs from 'fs';
 
 @Controller('destore')
 export class DeStoreController {
@@ -37,30 +37,18 @@ export class DeStoreController {
     @Res() res: Response,
   ) {
     try {
-      // ⭐ Vercel-safe writable directory
-      const uploadDir = '/tmp/uploads';
+      // ⛔ NO temp folder on Vercel — use memory buffer
+      const tempPath = path.join('/tmp', file.originalname);
 
-      if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true });
-      }
-
-      // Temporary file path inside /tmp
-      const tempPath = path.join(uploadDir, file.originalname);
-
-      // Save uploaded file buffer
+      // ✔ /tmp IS ALLOWED ON VERCEL
       fs.writeFileSync(tempPath, file.buffer);
 
-      // ⭐ Upload to Nextcloud + Save DB record
       const result = await this.destoreService.uploadFile(tempPath);
 
-      // Cleanup temp file
-      fs.unlinkSync(tempPath);
+      // Clean temp
+      if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
 
-      if (result.success) {
-        return res.redirect('/destore');
-      } else {
-        return res.status(400).send('Upload failed');
-      }
+      return res.redirect('/destore');
     } catch (error: any) {
       return res.status(500).send('Internal server error: ' + error.message);
     }
