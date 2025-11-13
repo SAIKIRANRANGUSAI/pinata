@@ -1,10 +1,11 @@
 const { createNestServer } = require("../dist/main");
 
-let cachedServer;
+let server;
 
 module.exports = async (req, res) => {
-  if (!cachedServer) {
-    cachedServer = await createNestServer();
+  if (!server) {
+    server = await createNestServer();
   }
-  return cachedServer(req, res);
+
+  return server(req, res);
 };
