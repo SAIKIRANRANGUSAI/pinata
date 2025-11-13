@@ -6,8 +6,8 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "build": "nest build && mkdir dist/views dist/public 2>nul & xcopy views dist\\views /E /I /Y & xcopy public dist\\public /E /I /Y",
-
+    "build": "nest build && mkdir -p dist/views && cp -r views/* dist/views && mkdir -p dist/public && cp -r public/* dist/public"
+,
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "node dist/main.js",
     "start:dev": "nest start --watch",
