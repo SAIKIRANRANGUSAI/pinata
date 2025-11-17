@@ -7,10 +7,19 @@ import * as hbs from 'hbs';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
-  app.useStaticAssets(join(__dirname, '..', 'public'));
+  const root = process.cwd();
 
-  app.setBaseViewsDir(join(__dirname, '..', 'views'));
+  const viewsPath = join(root, 'dist', 'views');
+  const publicPath = join(root, 'dist', 'public');
+
+  app.useStaticAssets(publicPath);
+
+  app.setBaseViewsDir(viewsPath);
   app.setViewEngine('hbs');
+
+  try {
+    hbs.registerPartials(join(viewsPath, 'partials'));
+  } catch {}
 
   await app.listen(process.env.PORT || 3000);
 }
